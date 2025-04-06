@@ -267,6 +267,8 @@ HRESULT CMain::LoadXML()
 				item->RunAsAdmin = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"HideWindow")
 				item->HideWindow = (cNodeText == L"true") ? true : false;
+			else if (cNodeName == L"UseVariableQuotes")
+				item->UseVariableQuotes = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"Hidden")
 				item->Hidden = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"Sort")
@@ -487,6 +489,91 @@ STDMETHODIMP CMain::QueryContextMenu(
 }
 
 
+STDAPI_(std::wstring) FormatCommand(std::wstring args, std::list<std::wstring> g_ShellItems, bool useVariableQuotes)
+{
+	if (args.find(L"%items%") != std::wstring::npos)
+	{
+		std::wstring joined = L"\"" + JoinList(&g_ShellItems, L"\" \"") + L"\"";
+		ATL::CString value = args.c_str();
+		value.Replace(L"%items%", joined.c_str());
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%paths%") != std::wstring::npos)
+	{
+		std::wstring joined = JoinList(&g_ShellItems, (useVariableQuotes) ? L"\" \"" : L" ");
+		if (useVariableQuotes) joined = L"\"" + joined + L"\"";
+		ATL::CString value = args.c_str();
+		value.Replace(L"%paths%", joined.c_str());
+		
+
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%filename-no-ext%") != std::wstring::npos)
+	{
+		std::wstring firstFile = g_ShellItems.front();
+		std::filesystem::path fp(firstFile);
+		ATL::CString value = args.c_str();
+		value.Replace(L"%filename-no-ext%", fp.stem().c_str());
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%filename%") != std::wstring::npos)
+	{
+		std::wstring firstFile = g_ShellItems.front();
+		std::filesystem::path fp(firstFile);
+		ATL::CString value = args.c_str();
+		value.Replace(L"%filename%", fp.filename().c_str());
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%path%") != std::wstring::npos)
+	{
+		std::wstring firstFile = g_ShellItems.front();
+		std::filesystem::path fp(firstFile);
+		ATL::CString value = args.c_str();
+		value.Replace(L"%path%", fp.parent_path().c_str());
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%ext%") != std::wstring::npos)
+	{
+		std::wstring firstFile = g_ShellItems.front();
+		std::filesystem::path fp(firstFile);
+		ATL::CString value = args.c_str();
+		value.Replace(L"%ext%", fp.extension().c_str());
+		args = value.GetBuffer();
+	}
+
+	if (args.find(L"%root_path%") != std::wstring::npos)
+	{
+		std::wstring firstFile = g_ShellItems.front();
+		std::filesystem::path fp(firstFile);
+		ATL::CString value = args.c_str();
+		value.Replace(L"%root_path%", fp.root_path().c_str());
+		args = value.GetBuffer();
+	}
+
+	return args;
+}
+
+
+extern "C" __declspec(dllexport) const wchar_t* FormatCommandVB(const wchar_t* args, const wchar_t* item, bool useVariableQuotes) {
+	std::list<std::wstring> itemList;
+	itemList.push_back(item);
+	//itemList.emplace_back(item);
+
+	// Call the original function
+	std::wstring result = FormatCommand(std::wstring(args), itemList, useVariableQuotes);
+
+	// Allocate memory for the result and return it
+	size_t bufferSize = (result.size() + 1) * sizeof(wchar_t);
+	wchar_t* buffer = (wchar_t*)CoTaskMemAlloc(bufferSize);
+	wcscpy_s(buffer, result.size() + 1, result.c_str());
+	return buffer;
+}
+
 STDMETHODIMP CMain::InvokeCommand(LPCMINVOKECOMMANDINFO pCmdInfo)
 {
 	if (HIWORD(pCmdInfo->lpVerb) != 0)
@@ -503,31 +590,8 @@ STDMETHODIMP CMain::InvokeCommand(LPCMINVOKECOMMANDINFO pCmdInfo)
 			STARTUPINFO si = {sizeof(si)};
 
 			std::wstring args = g_Items[i]->Arguments;
+			args = FormatCommand(args, g_ShellItems, g_Items[i]->UseVariableQuotes);
 
-			if (args.find(L"%items%") != std::wstring::npos)
-			{
-				std::wstring joined = L"\"" + JoinList(&g_ShellItems, L"\" \"") + L"\"";
-				ATL::CString value = args.c_str();
-				value.Replace(L"%items%", joined.c_str());
-				args = value.GetBuffer();
-			}
-
-			if (args.find(L"%paths%") != std::wstring::npos)
-			{
-				std::wstring joined = L"\"" + JoinList(&g_ShellItems, L"\" \"") + L"\"";
-				ATL::CString value = args.c_str();
-				value.Replace(L"%paths%", joined.c_str());
-				args = value.GetBuffer();
-			}
-
-			if (args.find(L"%filename-no-ext%") != std::wstring::npos)
-			{
-				std::wstring firstFile = g_ShellItems.front();
-				std::filesystem::path fp(firstFile);
-				ATL::CString value = args.c_str();
-				value.Replace(L"%filename-no-ext%", fp.stem().c_str());
-				args = value.GetBuffer();
-			}
 
 			std::wstring verb;
 

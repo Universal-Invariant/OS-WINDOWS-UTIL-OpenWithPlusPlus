@@ -28,4 +28,8 @@ Public Class Native
     <DllImport("uxtheme", CharSet:=CharSet.Unicode)>
     Shared Function SetWindowTheme(hWnd As IntPtr, pszSubAppName As String, pszSubIdList As String) As Integer
     End Function
+
+    <DllImport("OpenWithPPShellExtension.dll", CharSet:=CharSet.Unicode)>
+    Shared Function FormatCommandVB(args As String, str As String, useVariableQuotes As Boolean) As String
+    End Function
 End Class

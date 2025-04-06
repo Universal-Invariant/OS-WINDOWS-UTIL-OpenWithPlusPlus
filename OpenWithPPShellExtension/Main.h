@@ -26,6 +26,7 @@ public:
 	bool Directories;
 	bool RunAsAdmin;
 	bool HideWindow;
+	bool UseVariableQuotes;
 	bool Hidden;
 	bool Sort;
 

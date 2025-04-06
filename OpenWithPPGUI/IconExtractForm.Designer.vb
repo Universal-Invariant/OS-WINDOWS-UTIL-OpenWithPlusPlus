@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class IconExtractForm
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,10 +20,11 @@ Partial Class IconExtractForm
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Me.tlpMain = New System.Windows.Forms.TableLayoutPanel()
         Me.flpOkCancel = New System.Windows.Forms.FlowLayoutPanel()
+        Me.bnApply = New System.Windows.Forms.Button()
         Me.bnOK = New System.Windows.Forms.Button()
         Me.bnCancel = New System.Windows.Forms.Button()
         Me.lv = New System.Windows.Forms.ListView()
@@ -52,6 +53,7 @@ Partial Class IconExtractForm
         Me.flpOkCancel.Anchor = System.Windows.Forms.AnchorStyles.Right
         Me.flpOkCancel.AutoSize = True
         Me.flpOkCancel.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink
+        Me.flpOkCancel.Controls.Add(Me.bnApply)
         Me.flpOkCancel.Controls.Add(Me.bnOK)
         Me.flpOkCancel.Controls.Add(Me.bnCancel)
         Me.flpOkCancel.Location = New System.Drawing.Point(510, 475)
@@ -60,6 +62,18 @@ Partial Class IconExtractForm
         Me.flpOkCancel.Size = New System.Drawing.Size(538, 121)
         Me.flpOkCancel.TabIndex = 0
         '
+        'bnApply
+        '
+        Me.bnApply.Anchor = System.Windows.Forms.AnchorStyles.None
+        Me.bnApply.DialogResult = System.Windows.Forms.DialogResult.OK
+        Me.bnApply.Enabled = False
+        Me.bnApply.Location = New System.Drawing.Point(0, 23)
+        Me.bnApply.Margin = New System.Windows.Forms.Padding(0)
+        Me.bnApply.Name = "bnApply"
+        Me.bnApply.Size = New System.Drawing.Size(250, 75)
+        Me.bnApply.TabIndex = 0
+        Me.bnApply.Text = "Apply"
+        Me.bnApply.UseVisualStyleBackColor = True
         'bnOK
         '
         Me.bnOK.Anchor = System.Windows.Forms.AnchorStyles.None
@@ -118,6 +132,7 @@ Partial Class IconExtractForm
 
     Friend WithEvents tlpMain As TableLayoutPanel
     Friend WithEvents flpOkCancel As FlowLayoutPanel
+    Friend WithEvents bnApply As Button
     Friend WithEvents bnOK As Button
     Friend WithEvents bnCancel As Button
     Friend WithEvents lv As ListView
