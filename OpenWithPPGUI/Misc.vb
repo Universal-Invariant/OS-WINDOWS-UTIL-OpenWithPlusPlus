@@ -112,6 +112,7 @@ Public Class Item
     Public Hidden As Boolean
     Public HideWindow As Boolean
     Public UseVariableQuotes As Boolean
+    Public UseVariables As Boolean
     Public IconFile As String = ""
     Public IconIndex As Integer
     Public Name As String = ""

@@ -54,6 +54,7 @@ Public Class MainForm
     Friend WithEvents bnFileTypes As Button
     Friend WithEvents cbHideWindow As CheckBox
     Friend WithEvents cbUseVariableQuotes As CheckBox
+    Friend WithEvents cbUseVariables As CheckBox
     Friend WithEvents tbWorkingDirectory As TextBox
     Friend WithEvents bnWorkingDirectory As Button
     Friend WithEvents laWorkingDirectory As Label
@@ -98,6 +99,7 @@ Public Class MainForm
         Me.cbHidden = New System.Windows.Forms.CheckBox()
         Me.cbHideWindow = New System.Windows.Forms.CheckBox()
         Me.cbUseVariableQuotes = New System.Windows.Forms.CheckBox()
+        Me.cbUseVariables = New System.Windows.Forms.CheckBox()
         Me.tlpMain = New System.Windows.Forms.TableLayoutPanel()
         Me.laFilter = New System.Windows.Forms.Label()
         Me.tbFilter = New System.Windows.Forms.TextBox()
@@ -324,6 +326,7 @@ Public Class MainForm
         Me.PropsFlowLayoutPanel.Controls.Add(Me.cbRunAsAdmin)
         Me.PropsFlowLayoutPanel.Controls.Add(Me.cbHideWindow)
         Me.PropsFlowLayoutPanel.Controls.Add(Me.cbUseVariableQuotes)
+        Me.PropsFlowLayoutPanel.Controls.Add(Me.cbUseVariables)
         Me.PropsFlowLayoutPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown
         Me.PropsFlowLayoutPanel.Location = New System.Drawing.Point(260, 297)
         Me.PropsFlowLayoutPanel.Margin = New System.Windows.Forms.Padding(0)
@@ -360,6 +363,16 @@ Public Class MainForm
         Me.cbUseVariableQuotes.TabIndex = 4
         Me.cbUseVariableQuotes.Text = "Use Variable Quotes"
         Me.cbUseVariableQuotes.UseVisualStyleBackColor = True
+        '
+        'cbUseVariables
+        '
+        Me.cbUseVariables.Location = New System.Drawing.Point(217, 45)
+        Me.cbUseVariables.Margin = New System.Windows.Forms.Padding(8, 1, 1, 1)
+        Me.cbUseVariables.Name = "cbUseVariables"
+        Me.cbUseVariables.Size = New System.Drawing.Size(200, 20)
+        Me.cbUseVariables.TabIndex = 4
+        Me.cbUseVariables.Text = "Use Variables(%$<Name>$%)"
+        Me.cbUseVariables.UseVisualStyleBackColor = True
         '
         'tlpMain
         '
@@ -963,6 +976,7 @@ Public Class MainForm
             cbRunAsAdmin.Checked = SelectedItem.RunAsAdmin
             cbHideWindow.Checked = SelectedItem.HideWindow
             cbUseVariableQuotes.Checked = SelectedItem.UseVariableQuotes
+            cbUseVariables.Checked = SelectedItem.UseVariables
             cbHidden.Checked = SelectedItem.Hidden
 
             If SelectedItem.FileTypesDisplay = "" Then
@@ -1004,6 +1018,7 @@ Public Class MainForm
             cbRunAsAdmin.Checked = False
             cbHideWindow.Checked = False
             cbUseVariableQuotes.Checked = True
+            cbUseVariables.Checked = True
             cbHidden.Checked = False
 
             tbName.Text = ""
@@ -1137,6 +1152,14 @@ Public Class MainForm
         End If
         tbExample_FillText()
     End Sub
+
+    Sub cbUseVariables_CheckedChanged(sender As Object, e As EventArgs) Handles cbUseVariables.CheckedChanged
+        If Not BlockEvents AndAlso Not SelectedItem Is Nothing Then
+            SelectedItem.UseVariables = cbUseVariables.Checked
+        End If
+        tbExample_FillText()
+    End Sub
+
 
     Private Sub cbHidden_CheckedChanged(sender As Object, e As EventArgs) Handles cbHidden.CheckedChanged
         If Not BlockEvents AndAlso Not SelectedItem Is Nothing Then
@@ -1347,7 +1370,6 @@ Public Class MainForm
     End Function
 
     Sub tbExample_FillText()
-        tbExample.Text = Native.FormatCommandVB(tbPath.Text + " " + tbArguments.Text, "C:\ExampleDirectory\ExampleFile.ext", cbUseVariableQuotes.Checked)
-
+        tbExample.Text = Native.FormatCommandVB(tbPath.Text + " " + tbArguments.Text, "C:\ExampleDirectory\ExampleFile.ext", cbUseVariableQuotes.Checked, cbUseVariables.Checked)
     End Sub
 End Class

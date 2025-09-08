@@ -1,9 +1,20 @@
-
+﻿
 #include "stdafx.h"
 #include "Main.h"
 
-#include <regex>
-#include <filesystem>
+// TODO: better deal with multiple file selection/application and quotations
+
+std::wstring trim(const std::wstring& s) {
+    if (s.empty()) return s;
+
+    size_t start = 0;
+    size_t end = s.length();
+
+    while (start < end && iswspace(s[start])) ++start;
+    while (end > start && iswspace(s[end - 1])) --end;
+
+    return s.substr(start, end - start);
+}
 
 Item::~Item()
 {
@@ -269,6 +280,8 @@ HRESULT CMain::LoadXML()
 				item->HideWindow = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"UseVariableQuotes")
 				item->UseVariableQuotes = (cNodeText == L"true") ? true : false;
+			else if (cNodeName == L"UseVariables")
+				item->UseVariables = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"Hidden")
 				item->Hidden = (cNodeText == L"true") ? true : false;
 			else if (cNodeName == L"Sort")
@@ -489,83 +502,178 @@ STDMETHODIMP CMain::QueryContextMenu(
 }
 
 
-STDAPI_(std::wstring) FormatCommand(std::wstring args, std::list<std::wstring> g_ShellItems, bool useVariableQuotes)
+STDAPI_(std::wstring) FormatCommand(std::wstring args, std::list<std::wstring> g_ShellItems, bool useVariableQuotes, int index = 0)
 {
-	if (args.find(L"%items%") != std::wstring::npos)
-	{
-		std::wstring joined = L"\"" + JoinList(&g_ShellItems, L"\" \"") + L"\"";
-		ATL::CString value = args.c_str();
-		value.Replace(L"%items%", joined.c_str());
-		args = value.GetBuffer();
-	}
+	ATL::CString value = args.c_str();
 
-	if (args.find(L"%paths%") != std::wstring::npos)
-	{
-		std::wstring joined = JoinList(&g_ShellItems, (useVariableQuotes) ? L"\" \"" : L" ");
-		if (useVariableQuotes) joined = L"\"" + joined + L"\"";
-		ATL::CString value = args.c_str();
-		value.Replace(L"%paths%", joined.c_str());
+	auto entry = g_ShellItems.front();
+	auto l = g_ShellItems.begin();
+	for (int i = 0; i < index; i++) l++;
+	entry = *l;
+	std::filesystem::path fp(entry);
+
+
+	auto Q = (useVariableQuotes) ? L"\" \"" : L" ";
+	
+	value.Replace(L"%items%", JoinList(&g_ShellItems, Q).c_str());
+	value.Replace(L"%paths%", JoinList(&g_ShellItems, Q).c_str());
+	value.Replace(L"%filename-no-ext%", fp.stem().c_str());
+	value.Replace(L"%filename%", fp.filename().c_str());
+	value.Replace(L"%path%", fp.parent_path().c_str());
+	value.Replace(L"%ext%", fp.extension().c_str());		
+	value.Replace(L"%root_path%", fp.root_path().c_str());
 		
-
-		args = value.GetBuffer();
-	}
-
-	if (args.find(L"%filename-no-ext%") != std::wstring::npos)
-	{
-		std::wstring firstFile = g_ShellItems.front();
-		std::filesystem::path fp(firstFile);
-		ATL::CString value = args.c_str();
-		value.Replace(L"%filename-no-ext%", fp.stem().c_str());
-		args = value.GetBuffer();
-	}
-
-	if (args.find(L"%filename%") != std::wstring::npos)
-	{
-		std::wstring firstFile = g_ShellItems.front();
-		std::filesystem::path fp(firstFile);
-		ATL::CString value = args.c_str();
-		value.Replace(L"%filename%", fp.filename().c_str());
-		args = value.GetBuffer();
-	}
-
-	if (args.find(L"%path%") != std::wstring::npos)
-	{
-		std::wstring firstFile = g_ShellItems.front();
-		std::filesystem::path fp(firstFile);
-		ATL::CString value = args.c_str();
-		value.Replace(L"%path%", fp.parent_path().c_str());
-		args = value.GetBuffer();
-	}
-
-	if (args.find(L"%ext%") != std::wstring::npos)
-	{
-		std::wstring firstFile = g_ShellItems.front();
-		std::filesystem::path fp(firstFile);
-		ATL::CString value = args.c_str();
-		value.Replace(L"%ext%", fp.extension().c_str());
-		args = value.GetBuffer();
-	}
-
-	if (args.find(L"%root_path%") != std::wstring::npos)
-	{
-		std::wstring firstFile = g_ShellItems.front();
-		std::filesystem::path fp(firstFile);
-		ATL::CString value = args.c_str();
-		value.Replace(L"%root_path%", fp.root_path().c_str());
-		args = value.GetBuffer();
-	}
-
+	
+	args = value.GetBuffer();
 	return args;
 }
 
+std::vector<PlaceholderInfo> extractPlaceholders(const std::wstring& input) {
+	std::vector<PlaceholderInfo> placeholders;
+	const std::wstring prefix = L"%$";
+	const std::wstring suffix = L"$%";
 
-extern "C" __declspec(dllexport) const wchar_t* FormatCommandVB(const wchar_t* args, const wchar_t* item, bool useVariableQuotes) {
+	size_t pos = 0;
+
+	while (pos < input.length()) {
+		size_t start = input.find(prefix, pos);
+		if (start == std::wstring::npos) break;
+		start += prefix.length();
+
+		size_t end = input.find(suffix, start);
+		if (end == std::wstring::npos) break;
+
+		std::wstring fullContent = input.substr(start, end - start);
+
+		PlaceholderInfo info;
+		info.fullPlaceholder = prefix + fullContent + suffix;
+		info.shouldFocus = false; // default
+
+		size_t eqPos = fullContent.find(L'=');
+
+		std::wstring namePart;
+		if (eqPos != std::wstring::npos) {
+			namePart = fullContent.substr(0, eqPos);
+			info.defaultValue = trim(fullContent.substr(eqPos + 1));
+		}
+		else {
+			namePart = fullContent;
+			info.defaultValue.clear();
+		}
+
+		// 👇 Check for * prefix
+		if (!namePart.empty() && namePart[0] == L'*') {
+			info.shouldFocus = true;
+			namePart = namePart.substr(1); // remove *			
+		}
+
+		info.name = trim(namePart);
+
+		placeholders.push_back(info);
+		pos = end + suffix.length();
+	}
+
+	return placeholders;
+}
+
+std::wstring replacePlaceholders(const std::wstring& input, const std::map<std::wstring, std::wstring>& replacements)
+{
+	std::wstring result = input;
+
+	// Get list of placeholders (we need fullPlaceholder and name)
+	auto placeholders = extractPlaceholders(input); 
+
+	// Sort by position or reverse order? We'll do reverse by start position
+	std::vector<std::pair<size_t, PlaceholderInfo>> found;
+
+	for (const auto& ph : placeholders) {
+		size_t pos = 0;
+		while ((pos = result.find(ph.fullPlaceholder, pos)) != std::wstring::npos) {
+			found.emplace_back(pos, ph);
+			pos += ph.fullPlaceholder.length();
+		}
+	}
+
+	// Sort descending by position
+	std::sort(found.begin(), found.end(), [](const auto& a, const auto& b) {
+		return a.first > b.first;
+		});
+
+	for (const auto& [pos, ph] : found) {
+		auto it = replacements.find(ph.name);
+		if (it != replacements.end()) {
+			result.replace(pos, ph.fullPlaceholder.length(), it->second);
+		}
+	}
+
+	return result;
+}
+
+
+
+
+
+std::optional<std::wstring> fixupUserVariables(std::wstring cmdline)
+{
+	std::wstring result = cmdline;
+
+	INITCOMMONCONTROLSEX icex;
+	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icex.dwICC = ICC_STANDARD_CLASSES;
+	InitCommonControlsEx(&icex);
+
+	// 👇 Extract full placeholder info (names + defaults)
+	auto placeholders = extractPlaceholders(cmdline);
+
+	if (placeholders.empty()) {
+		//MessageBoxW(NULL, result.c_str(), L"No user variables to replace!", MB_OK | MB_ICONINFORMATION);
+		return result;
+	}
+	// Query user for parameters	
+	auto replacements = promptUserForPlaceholders(NULL, placeholders);
+	if (!replacements.has_value()) return std::nullopt;
+
+	if (!replacements.value().empty()) {
+		result = replacePlaceholders(cmdline, replacements.value());
+		//MessageBoxW(NULL, result.c_str(), L"Result", MB_OK | MB_ICONINFORMATION);
+	}
+	else {
+		//MessageBoxW(NULL, result.c_str(), L"No user variables replaced!", MB_OK | MB_ICONINFORMATION);
+	}
+
+	return result;
+}
+
+
+
+// Used to create the command to display in VB
+extern "C" __declspec(dllexport) const wchar_t* FormatCommandVB(const wchar_t* args, const wchar_t* item, bool useVariableQuotes, bool useVariables) {
 	std::list<std::wstring> itemList;
 	itemList.push_back(item);
 	//itemList.emplace_back(item);
 
+	auto wargs = std::wstring(args);
+	// wargs = L"C:\\test %$name$% %$file$% -r -d"; // for debugging
+
 	// Call the original function
-	std::wstring result = FormatCommand(std::wstring(args), itemList, useVariableQuotes);
+	std::wstring result = FormatCommand(wargs, itemList, useVariableQuotes);
+
+	if (useVariables)
+	{
+
+		// Fill in the user variables withd default names(since it is only for displaying example string)
+		auto placeholderNames = extractPlaceholders(result); // from Part 1 above
+		std::map<std::wstring, std::wstring> replacements;
+		size_t pos = 0;
+		while (pos < placeholderNames.size())
+		{
+			auto s = std::wstring(L"<Var");
+			replacements[placeholderNames[pos].name] = s.append(L"(").append(std::to_wstring(pos + 1)).append(L") `").append(placeholderNames[pos].fullPlaceholder).append(L"`>");
+			pos++;
+		}
+		result = replacePlaceholders(result, replacements);
+	}
+
 
 	// Allocate memory for the result and return it
 	size_t bufferSize = (result.size() + 1) * sizeof(wchar_t);
@@ -586,101 +694,126 @@ STDMETHODIMP CMain::InvokeCommand(LPCMINVOKECOMMANDINFO pCmdInfo)
 	{
 		if (id == g_Items[i]->CommandIndex)
 		{
-			PROCESS_INFORMATION pi = {0};
-			STARTUPINFO si = {sizeof(si)};
-
-			std::wstring args = g_Items[i]->Arguments;
-			args = FormatCommand(args, g_ShellItems, g_Items[i]->UseVariableQuotes);
+			PROCESS_INFORMATION pi = { 0 };
+			STARTUPINFO si = { sizeof(si) };
 
 
-			std::wstring verb;
 
-			if (g_Items[i]->RunAsAdmin || GetKeyState(VK_SHIFT) < 0)
-				verb = L"runas";
-
-			std::wstring path = g_Items[i]->Path;
-			std::wstring var(L"%");
-
-			if (path.find(var) != std::string::npos)
+			// transform user variables(%$<..>$%) and replace with user queries if they exist and if useVariables is set
+			auto sargs = g_Items[i]->Arguments;
+			if (g_Items[i]->UseVariables)
 			{
-				WCHAR szPath[500];
-				DWORD result = ExpandEnvironmentStrings(path.c_str(), szPath, std::size(szPath));
+				auto ssargs = fixupUserVariables(g_Items[i]->Arguments);
 
-				if (result)
-					path = szPath;
-			}
-
-			WCHAR szExeDir[500];
-			SHRegGetPath(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME, L"ExeDir", szExeDir, NULL);
-			std::wstring exeDir(szExeDir);
-
-			// starts with
-			if (path.rfind(L"..\\", 0) == 0)
-				path = exeDir + path;
-
-			if (args.find(var) != std::string::npos)
-			{
-				WCHAR szArgs[900];
-				DWORD result = ExpandEnvironmentStrings(args.c_str(), szArgs, std::size(szArgs));
-
-				if (result)
-					args = szArgs;
-			}
-
-			std::wstring guiExe(L"OpenWithPPGUI.exe");
-
-			if (guiExe == path)
-				path = exeDir + guiExe;
-
-			SHELLEXECUTEINFO info;
-
-			info.cbSize = sizeof(SHELLEXECUTEINFO);
-			info.fMask = NULL;
-			info.hwnd = hwnd;
-			info.lpVerb = verb.c_str();
-			info.lpFile = path.c_str();
-			info.lpParameters = args.c_str();
-
-			if (g_Items[i]->WorkingDirectory.length() == 0)
-			{
-				WCHAR szDir[500];
-
-				if (g_ShellItems.size() > 0)
+				if (!ssargs.has_value())
 				{
-					std::wstring firstItem = *g_ShellItems.begin();
-
-					if (FileExists(firstItem))
-					{
-						wcscpy_s(szDir, firstItem.c_str());
-						PathRemoveFileSpec(szDir);
-					}
-					else if (DirectoryExist(firstItem))
-					{
-						wcscpy_s(szDir, firstItem.c_str());
-					}
+					// DEBUG:
+					//MessageBox(NULL, L"Dialog Cancelled", L"OpenWithPP cmdLine", MB_OK);
+					return E_FAIL;
 				}
-
-				info.lpDirectory = DirectoryExist(szDir) ? szDir : NULL;
+				sargs = ssargs.value();
 			}
-			else
+
+			for (int j = 0; j < g_ShellItems.size(); j++)
 			{
-				if (g_Items[i]->WorkingDirectory.find(var) != std::string::npos)
+				std::wstring args = FormatCommand(sargs, g_ShellItems, g_Items[i]->UseVariableQuotes, j);
+
+				// DEBUG: Show user the command line being used.
+				//MessageBox(NULL, args.c_str(), L"OpenWithPP cmdLine", MB_OK);
+
+
+
+
+				std::wstring verb;
+
+				if (g_Items[i]->RunAsAdmin || GetKeyState(VK_SHIFT) < 0)
+					verb = L"runas";
+
+				std::wstring path = g_Items[i]->Path;
+				std::wstring var(L"%");
+
+				if (path.find(var) != std::string::npos)
 				{
-					WCHAR szWorkingDirectory[500];
-					DWORD result = ExpandEnvironmentStrings(
-						g_Items[i]->WorkingDirectory.c_str(), szWorkingDirectory, std::size(szWorkingDirectory));
+					WCHAR szPath[500];
+					DWORD result = ExpandEnvironmentStrings(path.c_str(), szPath, std::size(szPath));
 
 					if (result)
-						g_Items[i]->WorkingDirectory = szWorkingDirectory;
+						path = szPath;
 				}
 
-				info.lpDirectory = g_Items[i]->WorkingDirectory.c_str();
+				WCHAR szExeDir[500];
+				SHRegGetPath(HKEY_CURRENT_USER, L"Software\\" PRODUCT_NAME, L"ExeDir", szExeDir, NULL);
+				std::wstring exeDir(szExeDir);
+
+				// starts with
+				if (path.rfind(L"..\\", 0) == 0)
+					path = exeDir + path;
+
+				if (args.find(var) != std::string::npos)
+				{
+					WCHAR szArgs[900];
+					DWORD result = ExpandEnvironmentStrings(args.c_str(), szArgs, std::size(szArgs));
+
+					if (result)
+						args = szArgs;
+				}
+
+				std::wstring guiExe(L"OpenWithPPGUI.exe");
+
+				if (guiExe == path)
+					path = exeDir + guiExe;
+
+				SHELLEXECUTEINFO info;
+
+				info.cbSize = sizeof(SHELLEXECUTEINFO);
+				info.fMask = NULL;
+				info.hwnd = hwnd;
+				info.lpVerb = verb.c_str();
+				info.lpFile = path.c_str();
+				info.lpParameters = args.c_str();
+
+				if (g_Items[i]->WorkingDirectory.length() == 0)
+				{
+					WCHAR szDir[500];
+
+					if (g_ShellItems.size() > 0)
+					{
+						std::wstring firstItem = *g_ShellItems.begin();
+
+						if (FileExists(firstItem))
+						{
+							wcscpy_s(szDir, firstItem.c_str());
+							PathRemoveFileSpec(szDir);
+						}
+						else if (DirectoryExist(firstItem))
+						{
+							wcscpy_s(szDir, firstItem.c_str());
+						}
+					}
+
+					info.lpDirectory = DirectoryExist(szDir) ? szDir : NULL;
+				}
+				else
+				{
+					if (g_Items[i]->WorkingDirectory.find(var) != std::string::npos)
+					{
+						WCHAR szWorkingDirectory[500];
+						DWORD result = ExpandEnvironmentStrings(
+							g_Items[i]->WorkingDirectory.c_str(), szWorkingDirectory, std::size(szWorkingDirectory));
+
+						if (result)
+							g_Items[i]->WorkingDirectory = szWorkingDirectory;
+					}
+
+					info.lpDirectory = g_Items[i]->WorkingDirectory.c_str();
+				}
+
+				info.nShow = g_Items[i]->HideWindow ? SW_HIDE : SW_NORMAL;
+				info.hInstApp = NULL;
+
+				ShellExecuteEx(&info);
+				
 			}
-
-			info.nShow = g_Items[i]->HideWindow ? SW_HIDE : SW_NORMAL;
-			info.hInstApp = NULL;
-
-			ShellExecuteEx(&info);
 			return S_OK;
 		}
 	}

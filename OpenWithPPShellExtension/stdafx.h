@@ -23,3 +23,13 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <map>
+#include <regex>
+#include <optional>
+#include <filesystem>
+#include <commctrl.h>
+
+#include "Common.h"
+#include <windows.h>
+#include "resource.h"
+

@@ -30,6 +30,6 @@ Public Class Native
     End Function
 
     <DllImport("OpenWithPPShellExtension.dll", CharSet:=CharSet.Unicode)>
-    Shared Function FormatCommandVB(args As String, str As String, useVariableQuotes As Boolean) As String
+    Shared Function FormatCommandVB(args As String, str As String, useVariableQuotes As Boolean, useVariable As Boolean) As String
     End Function
 End Class

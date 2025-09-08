@@ -4,6 +4,10 @@
 #include "Util.h"
 #include "Common.h"
 
+// Forward declaration for user dialog box
+//EXTERN_C INT_PTR CALLBACK PlaceholderDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+
+
 EXTERN_C const CLSID CLSID_Main;
 
 // {E7B8ACF5-FC18-4f0d-BC50-D0184481A5DC}
@@ -27,6 +31,7 @@ public:
 	bool RunAsAdmin;
 	bool HideWindow;
 	bool UseVariableQuotes;
+	bool UseVariables;
 	bool Hidden;
 	bool Sort;
 

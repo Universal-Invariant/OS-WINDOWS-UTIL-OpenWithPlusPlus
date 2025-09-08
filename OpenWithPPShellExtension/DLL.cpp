@@ -5,6 +5,7 @@
 
 
 HMODULE g_hmodThis;
+HMODULE g_hInst;
 
 
 class COpenWithPPShellExtensionModule : public ATL::CAtlDllModuleT< COpenWithPPShellExtensionModule >
@@ -19,6 +20,7 @@ COpenWithPPShellExtensionModule _AtlModule;
 extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 {
 	g_hmodThis = (HMODULE)hInstance;
+	g_hInst = g_hmodThis;
 
 	WCHAR szModuleName[500];
 
