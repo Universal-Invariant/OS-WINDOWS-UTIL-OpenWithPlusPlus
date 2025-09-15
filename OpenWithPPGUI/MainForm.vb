@@ -812,14 +812,25 @@ Public Class MainForm
         End If
 
         Dim debug As Boolean = False
+#If DEBUG Then
+        debug As Boolean = True
+#End If
 
         ' Check if we have command-line arguments (beyond executable name)
         If debug Or args.Length > 2 Then
             Try
                 ' SETUP DEBUG command line or use supplied
-                Dim commandName As String = "Tester"
-                Dim filesString As String = "file 1.txt;file 2.mpg"
-                Dim flagsString As String = "%$var1=fff$% testing stuff %paths%  %$var2=ABCD$%"
+
+                Dim commandName As String
+                Dim filesString As String
+                Dim flagsString As String
+
+#If DEBUG Then
+        commandName = "Tester"
+        filesString = "file 1.txt;file 2.mpg"
+        flagsString = "%$var1=fff$% testing stuff %paths%  %$var2=ABCD$%"
+#End If
+
 
                 If args.Length > 2 Then
                     ' Parse command name (first argument after executable)
