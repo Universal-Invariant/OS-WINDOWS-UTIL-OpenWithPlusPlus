@@ -108,7 +108,8 @@ Tokens are wrapped with the token indicator: %. The following tokens are replace
 appropriate file information and default values if file does not exist.
 
 The current file: When multiple files are passed it will be the currently executing file in the list
-	file - full file
+
+	file - full file 
 	path - path 
 	filename - filename
 	file-no-ext =  full file without extension
