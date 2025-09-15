@@ -3,8 +3,8 @@ Imports System.IO
 Imports System.Runtime.Serialization.Formatters.Binary
 Imports System.Text.RegularExpressions
 Imports System.Threading
+Imports System.Xml
 Imports Microsoft.VisualBasic
-
 Imports Microsoft.Win32
 
 Public Class MainForm
@@ -140,6 +140,7 @@ Public Class MainForm
         Me.tbName.Name = "tbName"
         Me.tbName.Size = New System.Drawing.Size(482, 23)
         Me.tbName.TabIndex = 1
+        Me.tbName.WordWrap = False
         '
         'tbPath
         '
@@ -150,6 +151,7 @@ Public Class MainForm
         Me.tbPath.Name = "tbPath"
         Me.tbPath.Size = New System.Drawing.Size(482, 23)
         Me.tbPath.TabIndex = 4
+        Me.tbPath.WordWrap = False
         '
         'tbArguments
         '
@@ -160,6 +162,7 @@ Public Class MainForm
         Me.tbArguments.Margin = New System.Windows.Forms.Padding(1, 3, 0, 3)
         Me.tbArguments.Multiline = True
         Me.tbArguments.Name = "tbArguments"
+        Me.tbArguments.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
         Me.tbArguments.Size = New System.Drawing.Size(482, 59)
         Me.tbArguments.TabIndex = 6
         '
@@ -190,6 +193,7 @@ Public Class MainForm
         Me.tbFileTypes.Name = "tbFileTypes"
         Me.tbFileTypes.Size = New System.Drawing.Size(482, 23)
         Me.tbFileTypes.TabIndex = 2
+        Me.tbFileTypes.WordWrap = False
         '
         'laExt
         '
@@ -223,7 +227,7 @@ Public Class MainForm
         Me.lv.Margin = New System.Windows.Forms.Padding(6, 0, 0, 0)
         Me.lv.Name = "lv"
         Me.tlpMain.SetRowSpan(Me.lv, 8)
-        Me.lv.Size = New System.Drawing.Size(254, 382)
+        Me.lv.Size = New System.Drawing.Size(254, 482)
         Me.lv.TabIndex = 0
         Me.lv.UseCompatibleStateImageBehavior = False
         '
@@ -263,7 +267,7 @@ Public Class MainForm
         '
         Me.laExample.Anchor = System.Windows.Forms.AnchorStyles.Left
         Me.laExample.AutoSize = True
-        Me.laExample.Location = New System.Drawing.Point(266, 264)
+        Me.laExample.Location = New System.Drawing.Point(266, 314)
         Me.laExample.Margin = New System.Windows.Forms.Padding(6, 7, 0, 7)
         Me.laExample.Name = "laExample"
         Me.laExample.Size = New System.Drawing.Size(55, 15)
@@ -272,14 +276,15 @@ Public Class MainForm
         '
         'tbExample
         '
+        Me.tbExample.AcceptsReturn = True
         Me.tbExample.Anchor = CType((System.Windows.Forms.AnchorStyles.Left Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.tbExample.BackColor = System.Drawing.Color.WhiteSmoke
-        Me.tbExample.Enabled = False
         Me.tbExample.Location = New System.Drawing.Point(337, 247)
         Me.tbExample.Margin = New System.Windows.Forms.Padding(0)
         Me.tbExample.Multiline = True
         Me.tbExample.Name = "tbExample"
-        Me.tbExample.Size = New System.Drawing.Size(483, 50)
+        Me.tbExample.ScrollBars = System.Windows.Forms.ScrollBars.Vertical
+        Me.tbExample.Size = New System.Drawing.Size(483, 150)
         Me.tbExample.TabIndex = 0
         '
         'laArgs
@@ -328,7 +333,7 @@ Public Class MainForm
         Me.PropsFlowLayoutPanel.Controls.Add(Me.cbUseVariableQuotes)
         Me.PropsFlowLayoutPanel.Controls.Add(Me.cbUseVariables)
         Me.PropsFlowLayoutPanel.FlowDirection = System.Windows.Forms.FlowDirection.TopDown
-        Me.PropsFlowLayoutPanel.Location = New System.Drawing.Point(260, 297)
+        Me.PropsFlowLayoutPanel.Location = New System.Drawing.Point(260, 397)
         Me.PropsFlowLayoutPanel.Margin = New System.Windows.Forms.Padding(0)
         Me.PropsFlowLayoutPanel.Name = "PropsFlowLayoutPanel"
         Me.PropsFlowLayoutPanel.Size = New System.Drawing.Size(640, 114)
@@ -448,6 +453,7 @@ Public Class MainForm
         Me.tbFilter.Name = "tbFilter"
         Me.tbFilter.Size = New System.Drawing.Size(482, 23)
         Me.tbFilter.TabIndex = 12
+        Me.tbFilter.WordWrap = False
         '
         'tlpSearch
         '
@@ -499,6 +505,7 @@ Public Class MainForm
         Me.tbWorkingDirectory.Name = "tbWorkingDirectory"
         Me.tbWorkingDirectory.Size = New System.Drawing.Size(482, 23)
         Me.tbWorkingDirectory.TabIndex = 8
+        Me.tbWorkingDirectory.WordWrap = False
         '
         'laWorkingDirectory
         '
@@ -523,19 +530,19 @@ Public Class MainForm
         Me.tlpListView.Controls.Add(Me.bnClone, 2, 0)
         Me.tlpListView.Controls.Add(Me.bnRemove, 1, 0)
         Me.tlpListView.Controls.Add(Me.bnAdd, 0, 0)
-        Me.tlpListView.Location = New System.Drawing.Point(6, 411)
+        Me.tlpListView.Location = New System.Drawing.Point(6, 511)
         Me.tlpListView.Margin = New System.Windows.Forms.Padding(6, 0, 0, 0)
         Me.tlpListView.Name = "tlpListView"
         Me.tlpListView.RowCount = 1
         Me.tlpListView.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
-        Me.tlpListView.Size = New System.Drawing.Size(254, 150)
+        Me.tlpListView.Size = New System.Drawing.Size(254, 50)
         Me.tlpListView.TabIndex = 27
         '
         'bnClone
         '
         Me.bnClone.Anchor = CType((System.Windows.Forms.AnchorStyles.Left Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.bnClone.BackColor = System.Drawing.Color.WhiteSmoke
-        Me.bnClone.Location = New System.Drawing.Point(178, 62)
+        Me.bnClone.Location = New System.Drawing.Point(178, 12)
         Me.bnClone.Margin = New System.Windows.Forms.Padding(6, 0, 0, 0)
         Me.bnClone.Name = "bnClone"
         Me.bnClone.Size = New System.Drawing.Size(76, 25)
@@ -547,7 +554,7 @@ Public Class MainForm
         '
         Me.bnRemove.Anchor = CType((System.Windows.Forms.AnchorStyles.Left Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.bnRemove.BackColor = System.Drawing.Color.WhiteSmoke
-        Me.bnRemove.Location = New System.Drawing.Point(81, 62)
+        Me.bnRemove.Location = New System.Drawing.Point(81, 12)
         Me.bnRemove.Margin = New System.Windows.Forms.Padding(0)
         Me.bnRemove.Name = "bnRemove"
         Me.bnRemove.Size = New System.Drawing.Size(91, 25)
@@ -559,7 +566,7 @@ Public Class MainForm
         '
         Me.bnAdd.Anchor = CType((System.Windows.Forms.AnchorStyles.Left Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.bnAdd.BackColor = System.Drawing.Color.WhiteSmoke
-        Me.bnAdd.Location = New System.Drawing.Point(0, 62)
+        Me.bnAdd.Location = New System.Drawing.Point(0, 12)
         Me.bnAdd.Margin = New System.Windows.Forms.Padding(0, 0, 6, 0)
         Me.bnAdd.Name = "bnAdd"
         Me.bnAdd.Size = New System.Drawing.Size(75, 25)
@@ -615,10 +622,10 @@ Public Class MainForm
         Me.FlowLayoutPanel1.Controls.Add(Me.bnOK)
         Me.FlowLayoutPanel1.Controls.Add(Me.bnCancel)
         Me.FlowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.FlowLayoutPanel1.Location = New System.Drawing.Point(260, 411)
+        Me.FlowLayoutPanel1.Location = New System.Drawing.Point(260, 511)
         Me.FlowLayoutPanel1.Margin = New System.Windows.Forms.Padding(0)
         Me.FlowLayoutPanel1.Name = "FlowLayoutPanel1"
-        Me.FlowLayoutPanel1.Size = New System.Drawing.Size(640, 150)
+        Me.FlowLayoutPanel1.Size = New System.Drawing.Size(640, 50)
         Me.FlowLayoutPanel1.TabIndex = 18
         Me.FlowLayoutPanel1.WrapContents = False
         '
@@ -797,10 +804,137 @@ Public Class MainForm
 
     <STAThread()>
     Public Shared Sub Main()
-        Application.SetCompatibleTextRenderingDefault(False)
-        Application.Run(New MainForm)
+        Dim args As String() = Environment.GetCommandLineArgs()
+        If 1 < args.Length And args.Length < 3 Then
+            ' Show usage error and exit
+            MessageBox.Show("Usage: myapp.exe ""Command Name"" ""file1.txt;file2.txt"" [flags...]", "Invalid Arguments", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            Environment.Exit(1)
+        End If
+
+        Dim debug As Boolean = False
+
+        ' Check if we have command-line arguments (beyond executable name)
+        If debug Or args.Length > 2 Then
+            Try
+                ' SETUP DEBUG command line or use supplied
+                Dim commandName As String = "Tester"
+                Dim filesString As String = "file 1.txt;file 2.mpg"
+                Dim flagsString As String = "%$var1=fff$% testing stuff %paths%  %$var2=ABCD$%"
+
+                If args.Length > 2 Then
+                    ' Parse command name (first argument after executable)
+                    commandName = args(1)
+
+                    ' 2. Extract files as semicolon-separated string (2nd parameter)
+                    filesString = args(2)
+
+                    ' 3. Join all remaining arguments into a single string for flag processing
+                    flagsString = String.Join(" ", args, 3, args.Length - 3)
+                End If
+
+
+                ' Load XML configuration                                
+                g.LoadSettings()
+
+                Dim files As List(Of String) = filesString.Split(";"c).ToList()
+                Dim item = g.Settings.Items.Find(Function(x As Item) x.Name = commandName)
+
+
+                ' Extract command configuration
+                Dim path As String = item.Path
+                Dim arguments As String = item.Arguments + " " + flagsString
+                Dim useVariables As Boolean = item.UseVariables
+                Dim useVariableQuotes As Boolean = item.UseVariableQuotes
+                Dim hideWindow As Boolean = item.HideWindow
+                Dim runAsAdmin As Boolean = item.RunAsAdmin
+                Dim workingDir As String = item.WorkingDirectory
+
+
+                ' Process user variables (e.g., %$<name>$%)
+                If useVariables Then
+                    arguments = Native.FixupUserVariablesVB(arguments)
+                End If
+
+                Dim index As Integer = 0
+                ' Execute for each file
+                For Each filee In files
+                    Dim file As String = Trim(filee)
+                    Dim formattedArgs As String = Native.FormatCommandVB(arguments, file, useVariableQuotes, index)
+                    index = index + 1
+
+                    ' Configure process start info
+                    Dim psi As New ProcessStartInfo()
+                    psi.FileName = path
+                    psi.Arguments = formattedArgs
+                    psi.UseShellExecute = True
+                    psi.WindowStyle = If(hideWindow, ProcessWindowStyle.Hidden, ProcessWindowStyle.Normal)
+
+                    ' Handle admin elevation
+                    If runAsAdmin Then
+                        psi.Verb = "runas"
+                    End If
+
+                    ' Set working directory (use command's setting or file's directory)
+                    If Not String.IsNullOrEmpty(workingDir) Then
+                        psi.WorkingDirectory = workingDir
+                    Else
+                        psi.WorkingDirectory = IO.Path.GetDirectoryName(file)
+                    End If
+
+                    ' Execute the command
+                    Process.Start(psi)
+                Next
+
+                ' Exit cleanly after command execution
+                Environment.Exit(0)
+            Catch ex As Exception
+                MessageBox.Show($"Error executing command: {ex.Message}", "Command Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Environment.Exit(1)
+            End Try
+        Else
+            ' Normal GUI startup
+            Application.SetCompatibleTextRenderingDefault(False)
+            Application.Run(New MainForm)
+        End If
     End Sub
 
+    ' Helper: Process user variables like %$<name>$%
+    Private Function FixupUserVariables(ByVal input As String) As String
+        Dim pattern As String = "%\$<(.+?)>\$%"
+        Dim regex As New Regex(pattern)
+        Dim matches As MatchCollection = regex.Matches(input)
+
+        For Each match As Match In matches
+            Dim varName As String = match.Groups(1).Value
+            Dim userInput As String = InputBox($"Enter value for {varName}", "User Variable Input")
+            input = input.Replace(match.Value, userInput)
+        Next
+
+        Return input
+    End Function
+
+    ' Helper: Format standard variables (%path%, %filename%, etc.)
+    Private Function FormatCommandArguments(ByVal args As String, ByVal file As String, ByVal useVariableQuotes As Boolean) As String
+        Dim result As String = args
+
+        ' Standard variable replacements
+        Dim replacements As New Dictionary(Of String, String) From {
+            {"%path%", file},
+            {"%filename%", Path.GetFileName(file)},
+            {"%directory%", Path.GetDirectoryName(file)},
+            {"%ext%", Path.GetExtension(file)}
+        }
+
+        For Each kvp In replacements
+            Dim value As String = kvp.Value
+            If useVariableQuotes AndAlso Not String.IsNullOrEmpty(value) Then
+                value = $"""{value}"""
+            End If
+            result = result.Replace(kvp.Key, value)
+        Next
+
+        Return result
+    End Function
     Shared Sub ApplicationThreadException(sender As Object, e As ThreadExceptionEventArgs)
         MsgError(e.Exception.ToString)
     End Sub
@@ -1370,6 +1504,15 @@ Public Class MainForm
     End Function
 
     Sub tbExample_FillText()
-        tbExample.Text = Native.FormatCommandVB(tbPath.Text + " " + tbArguments.Text, "C:\ExampleDirectory\ExampleFile.ext", cbUseVariableQuotes.Checked, cbUseVariables.Checked)
+        ' TODO: Show multiple index values if they exist
+        Dim files As String = "C:\Dir1\File1.ext1; C:\Dir2\File2.ext2; "
+        Dim v1 As String = Native.FormatCommandVBD(tbPath.Text + " " + tbArguments.Text, files, cbUseVariableQuotes.Checked, 0)
+        Dim v2 As String = Native.FormatCommandVBD(tbPath.Text + " " + tbArguments.Text, files, cbUseVariableQuotes.Checked, 1)
+
+        If Not v1 = v2 Then
+            v1 = v1 + Environment.NewLine + Environment.NewLine + v2
+        End If
+
+        tbExample.Text = v1
     End Sub
 End Class

@@ -14,10 +14,13 @@
 #include <shlwapi.h>
 #include <wincodec.h>
 #include <initguid.h>
-
+#include <sstream>
 #include <atlbase.h>
 #include <atlcom.h>
 #include <atlstr.h>
+#include <format>
+#include <fstream>
+#include <iostream>
 
 #include <list>
 #include <vector>

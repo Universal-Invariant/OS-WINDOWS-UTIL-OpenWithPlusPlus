@@ -295,10 +295,7 @@ HRESULT CMain::LoadXML()
 }
 
 
-STDMETHODIMP CMain::Initialize(
-	LPCITEMIDLIST pidlFolder,
-	LPDATAOBJECT pDataObj,
-	HKEY hProgID)
+STDMETHODIMP CMain::Initialize(LPCITEMIDLIST pidlFolder, LPDATAOBJECT pDataObj, HKEY hProgID)
 {
 	FORMATETC fmt = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 	STGMEDIUM stg;
@@ -342,8 +339,7 @@ STDMETHODIMP CMain::Initialize(
 }
 
 
-STDMETHODIMP CMain::QueryContextMenu(
-	HMENU hmenu, UINT uMenuIndex, UINT uidFirstCmd, UINT uidLastCmd, UINT uFlags)
+STDMETHODIMP CMain::QueryContextMenu(HMENU hmenu, UINT uMenuIndex, UINT uidFirstCmd, UINT uidLastCmd, UINT uFlags)
 {
 	if (!g_Items.size() || SHRegGetBoolUSValue(
 		L"Software\\" PRODUCT_NAME, L"Reload", FALSE, TRUE))
@@ -501,35 +497,220 @@ STDMETHODIMP CMain::QueryContextMenu(
 	return MAKE_HRESULT(SEVERITY_SUCCESS, 0, command - uidFirstCmd + 1);
 }
 
+std::wstring GetFileCreation(std::wstring pFileName)
+{
+	std::wstringstream ss;
+	WIN32_FILE_ATTRIBUTE_DATA wfad;
+	SYSTEMTIME st;
+	GetFileAttributesExW(pFileName.c_str(), GetFileExInfoStandard, &wfad);
+	FileTimeToSystemTime(&wfad.ftCreationTime, &st);
+	ss << st.wYear << '/' << st.wMonth << '/' << st.wDay << " " << (st.wHour % 24) << ":" << (st.wMinute % 60) << ":" << (st.wSecond % 60);
+	return ss.str();
+}
+
+std::wstring GetLastFileAccess(std::wstring pFileName)
+{
+	std::wstringstream ss;
+	WIN32_FILE_ATTRIBUTE_DATA wfad;
+	SYSTEMTIME st;
+	GetFileAttributesExW(pFileName.c_str(), GetFileExInfoStandard, &wfad);
+	FileTimeToSystemTime(&wfad.ftLastAccessTime, &st);
+	ss << st.wYear << '/' << st.wMonth << '/' << st.wDay << " " << (st.wHour % 24) << ":" << (st.wMinute % 60) << ":" << (st.wSecond % 60);
+	return ss.str();
+}
+
+std::wstring GetLastFileWrite(std::wstring pFileName)
+{
+	std::wstringstream ss;
+	WIN32_FILE_ATTRIBUTE_DATA wfad;
+	SYSTEMTIME st;
+	GetFileAttributesExW(pFileName.c_str(), GetFileExInfoStandard, &wfad);
+	FileTimeToSystemTime(&wfad.ftLastWriteTime, &st);
+	ss << st.wYear << '/' << st.wMonth << '/' << st.wDay << " " << (st.wHour % 24) << ":" << (st.wMinute % 60) << ":" << (st.wSecond % 60);
+	return ss.str();
+}
+
+std::wstring GetFileAttributes(std::wstring pFileName)
+{
+	WIN32_FILE_ATTRIBUTE_DATA wfad;
+	SYSTEMTIME st;
+	GetFileAttributesExW(pFileName.c_str(), GetFileExInfoStandard, &wfad);
+	return std::to_wstring(wfad.dwFileAttributes);
+}
+
 
 STDAPI_(std::wstring) FormatCommand(std::wstring args, std::list<std::wstring> g_ShellItems, bool useVariableQuotes, int index = 0)
 {
-	ATL::CString value = args.c_str();
 
-	auto entry = g_ShellItems.front();
-	auto l = g_ShellItems.begin();
-	for (int i = 0; i < index; i++) l++;
-	entry = *l;
-	std::filesystem::path fp(entry);
-
-
-	auto Q = (useVariableQuotes) ? L"\" \"" : L" ";
+	// TODO: allow configurable token identifing chars
+	auto wrappingTok = L"%";
 	
-	value.Replace(L"%items%", JoinList(&g_ShellItems, Q).c_str());
-	value.Replace(L"%paths%", JoinList(&g_ShellItems, Q).c_str());
-	value.Replace(L"%filename-no-ext%", fp.stem().c_str());
-	value.Replace(L"%filename%", fp.filename().c_str());
-	value.Replace(L"%path%", fp.parent_path().c_str());
-	value.Replace(L"%ext%", fp.extension().c_str());		
-	value.Replace(L"%root_path%", fp.root_path().c_str());
+	// Handle empty item list case
+	if (g_ShellItems.empty()) return args;
+	// Index should be within range
+	if (index < 0 || index >= g_ShellItems.size()) return args; 
+
+	// Build current file path object
+	auto it = g_ShellItems.begin();
+	std::advance(it, index);
+	std::filesystem::path currentFile(*it);	
+	
+	auto Q = (useVariableQuotes) ? L"\"" : L"";
+
+	// Build all required lists
+	std::vector<std::wstring> allFiles;
+	std::vector<std::wstring> allPaths;
+	std::vector<std::wstring> allFilenames;
+	std::vector<std::wstring> allFilesNoExt;
+	std::vector<std::wstring> allFilenamesNoExt;
+	std::vector<std::wstring> allExts;
+	std::vector<std::wstring> allDotExts;
+	std::vector<std::wstring> allFileSizes;
+	std::vector<std::wstring> allCreatedDates;
+	std::vector<std::wstring> allLastAccess;
+	std::vector<std::wstring> allLastWrite;
+	std::vector<std::wstring> allAttributes;
+	std::vector<std::wstring> allExists;
+	
+	auto removeExt = [](std::filesystem::path currentFile) -> std::wstring
+		{
+			return trim(currentFile.wstring()).replace(currentFile.wstring().length() - currentFile.extension().wstring().length(), currentFile.extension().wstring().length(), L"");
+		};
+
+	auto removeExtDot = [](std::filesystem::path currentFile) -> std::wstring
+		{
+			auto e = trim(currentFile.extension().wstring());
+			if (e.length() > 0 && e[0] == L'.')
+				return e.erase(0, 1);
+			return e;
+		};
+
+
+	for (const auto& item2 : g_ShellItems) {
+		auto item = trim(item2);
+		if (item.length() == 0) continue;
+
+		std::filesystem::path fp(item);
+		allFiles.push_back(item);
+		allPaths.push_back(trim(fp.parent_path().wstring()));
+		allFilenames.push_back(trim(fp.filename().wstring()));
+		allFilesNoExt.push_back(removeExt(fp));
+		allFilenamesNoExt.push_back(trim(fp.filename().stem().wstring()));
+		allExts.push_back(removeExtDot(fp));
+		allDotExts.push_back(trim(fp.extension().wstring()));
+		if (std::filesystem::exists(fp))
+		{
+			allExists.push_back(L"1");
+			allFileSizes.push_back(trim(std::to_wstring(std::filesystem::file_size(fp))));
+			allCreatedDates.push_back(GetFileCreation(item));
+			allLastAccess.push_back(GetLastFileAccess(item));
+			allLastWrite.push_back(GetLastFileWrite(item));
+			allAttributes.push_back(GetFileAttributes(item));
+		}
+		else {
+			allExists.push_back(L"0");
+			allFileSizes.push_back(L"0");
+			allCreatedDates.push_back(L" / / ");
+			allLastAccess.push_back(L" / / ");
+			allLastWrite.push_back(L" / / ");
+			allAttributes.push_back(L"-1");
+		}
 		
+	}
+
+	// Helper function to join lists with semicolon and optional quotes
+	auto joinList = [](const std::vector<std::wstring>& items, bool useQuotes = false, std::wstring delim = L";") -> std::wstring {
+		if (items.empty()) return L"";
+		std::wstringstream ss;
+		
+		for (int i = 0; i < items.size(); i++) {
+			if (useQuotes) { 
+				ss << L"\"" << trim(items[i]) << L"\"";
+			}
+			else {
+				ss << trim(items[i]);
+			}
+
+			if (i < items.size() - 1) ss << delim;
+		}
+		
+		return trim(ss.str());
+	};
+
+	// Helper function for safe token replacement
+	// TODO: Make more robust for arbitrary token wrapping identifier
+	auto replaceToken = [wrappingTok](std::wstring& str, const std::wstring& token, const std::wstring& value) {		
+		size_t pos = str.find(wrappingTok + token + wrappingTok);
+		if (pos != std::wstring::npos) {
+			str.replace(pos, token.length() + 2, value);
+		}
+	};
+
+
+
+
+	replaceToken(args, L"numItems", std::to_wstring(allFiles.size()));
+
+	// Perform replacements for all tokens. We use a single loop to deal with the 4 cases _  q_, _[], and q_[].
+	for (int i = 0; i < 4; i++)
+	{		
+		std::wstring QQ = Q;
+		if (i % 2 == 1) QQ = L"\""; // forces quotes for q tokens
+		#define replaceToken2(a, b)	replaceToken(args, std::wstring((i % 2 == 0) ? L"" : L"q") + a + ((i < 2) ? L"" : L"[]"), QQ + ((i < 2) ? b[index] : joinList(b)) + QQ)
+
+		
+		replaceToken2(L"file", allFiles);
+		replaceToken2(L"path", allPaths);
+		replaceToken2(L"filename", allFilenames);
+		replaceToken2(L"file-no-ext", allFilesNoExt);
+		replaceToken2(L"filename-no-ext", allFilenamesNoExt);
+		replaceToken2(L"ext", allExts);
+		replaceToken2(L".ext", allDotExts);
+		replaceToken2(L"exists", allExists);
+		replaceToken2(L"filesize", allFileSizes);
+		replaceToken2(L"created", allCreatedDates);
+		replaceToken2(L"accessed", allLastAccess);
+		replaceToken2(L"written", allLastWrite);
+		replaceToken2(L"attributes", allAttributes);
+	}
 	
-	args = value.GetBuffer();
+
 	return args;
+}
+
+
+
+extern "C" __declspec(dllexport) wchar_t* __stdcall FormatCommandVB(BSTR args, BSTR shellItemsString, bool useVariableQuotes, int index = 0)
+{
+	// Convert BSTR to std::wstring
+	std::wstring argsW(args);
+	std::wstring shellItemsW(shellItemsString);
+	
+	// Split shell items string into list
+	std::list<std::wstring> g_ShellItems;
+	size_t pos = 0;
+	while ((pos = shellItemsW.find(L';', pos)) != std::wstring::npos) {
+		g_ShellItems.push_back(shellItemsW.substr(0, pos));
+		shellItemsW = shellItemsW.substr(pos + 1);
+		pos = 0;
+	}
+	if (!shellItemsW.empty()) {
+		g_ShellItems.push_back(shellItemsW);
+	}
+
+	std::wstring value = FormatCommand(argsW, g_ShellItems, useVariableQuotes, index);
+	// Allocate and return string safely
+	size_t bufferSize = (value.size() + 1) * sizeof(wchar_t);
+	wchar_t* buffer = (wchar_t*)CoTaskMemAlloc(bufferSize);
+	if (!buffer) return nullptr;
+	wcscpy_s(buffer, value.size() + 1, value.c_str());
+	return buffer;
 }
 
 std::vector<PlaceholderInfo> extractPlaceholders(const std::wstring& input) {
 	std::vector<PlaceholderInfo> placeholders;
+	
+	// TODO: allow configurable prefixes and suffixes
 	const std::wstring prefix = L"%$";
 	const std::wstring suffix = L"$%";
 
@@ -610,6 +791,54 @@ std::wstring replacePlaceholders(const std::wstring& input, const std::map<std::
 }
 
 
+// Used to create the command to display in VB but uses dummy variables
+extern "C" __declspec(dllexport) const wchar_t* FormatCommandVBD(const wchar_t* args, const wchar_t* files, bool useVariableQuotes, int index = 0) 
+{
+	// Creating an input string stream from the input string
+	std::wstringstream ss(files);
+
+	// Temporary string to store each token
+	std::wstring token;
+	std::list<std::wstring> itemList;
+
+	while (std::getline(ss, token, L';'))
+		itemList.push_back(token);
+
+
+	
+
+	auto wargs = std::wstring(args);
+	// wargs = L"C:\\test %$name$% %$file$% -r -d"; // for debugging
+
+	// Call the original function
+	std::wstring result = FormatCommand(wargs, itemList, useVariableQuotes, index);
+
+	
+
+	// Fill in the user variables with default names(since it is only for displaying example string)
+	auto placeholderNames = extractPlaceholders(result); // from Part 1 above
+	std::map<std::wstring, std::wstring> replacements;
+	size_t pos = 0;
+	while (pos < placeholderNames.size())
+	{
+		auto s = std::wstring(L"<Var");
+		//replacements[placeholderNames[pos].name] = s.append(L"(").append(std::to_wstring(pos + 1)).append(L") `").append(placeholderNames[pos].fullPlaceholder).append(L"`>");
+		replacements[placeholderNames[pos].name] = L"<Var " + std::to_wstring(pos + 1) + L">";
+		if (placeholderNames[pos].defaultValue != L"")
+			replacements[placeholderNames[pos].name] = placeholderNames[pos].defaultValue;
+
+		pos++;
+	}
+	result = replacePlaceholders(result, replacements);
+
+
+
+	// Allocate memory for the result and return it
+	size_t bufferSize = (result.size() + 1) * sizeof(wchar_t);
+	wchar_t* buffer = (wchar_t*)CoTaskMemAlloc(bufferSize);
+	wcscpy_s(buffer, result.size() + 1, result.c_str());
+	return buffer;
+}
 
 
 
@@ -644,43 +873,29 @@ std::optional<std::wstring> fixupUserVariables(std::wstring cmdline)
 	return result;
 }
 
+// VB Wrapper to use fixupUserVariables in VB
+extern "C" __declspec(dllexport) wchar_t* __stdcall FixupUserVariablesVB(BSTR cmdline)
+{
+	// Convert BSTR to std::wstring
+	std::wstring input(cmdline);
 
+	// Call your existing function
+	auto result = fixupUserVariables(input);
 
-// Used to create the command to display in VB
-extern "C" __declspec(dllexport) const wchar_t* FormatCommandVB(const wchar_t* args, const wchar_t* item, bool useVariableQuotes, bool useVariables) {
-	std::list<std::wstring> itemList;
-	itemList.push_back(item);
-	//itemList.emplace_back(item);
-
-	auto wargs = std::wstring(args);
-	// wargs = L"C:\\test %$name$% %$file$% -r -d"; // for debugging
-
-	// Call the original function
-	std::wstring result = FormatCommand(wargs, itemList, useVariableQuotes);
-
-	if (useVariables)
-	{
-
-		// Fill in the user variables withd default names(since it is only for displaying example string)
-		auto placeholderNames = extractPlaceholders(result); // from Part 1 above
-		std::map<std::wstring, std::wstring> replacements;
-		size_t pos = 0;
-		while (pos < placeholderNames.size())
-		{
-			auto s = std::wstring(L"<Var");
-			replacements[placeholderNames[pos].name] = s.append(L"(").append(std::to_wstring(pos + 1)).append(L") `").append(placeholderNames[pos].fullPlaceholder).append(L"`>");
-			pos++;
-		}
-		result = replacePlaceholders(result, replacements);
+	if (!result.has_value()) {
+		// User canceled - return nullptr for VB.NET to interpret as Nothing
+		return nullptr;
 	}
 
-
-	// Allocate memory for the result and return it
-	size_t bufferSize = (result.size() + 1) * sizeof(wchar_t);
+	// Allocate and return string safely
+	size_t bufferSize = (result.value().size() + 1) * sizeof(wchar_t);
 	wchar_t* buffer = (wchar_t*)CoTaskMemAlloc(bufferSize);
-	wcscpy_s(buffer, result.size() + 1, result.c_str());
+	if (!buffer) return nullptr;
+	wcscpy_s(buffer, result.value().size() + 1, result.value().c_str());
 	return buffer;
 }
+
+
 
 STDMETHODIMP CMain::InvokeCommand(LPCMINVOKECOMMANDINFO pCmdInfo)
 {
@@ -716,7 +931,7 @@ STDMETHODIMP CMain::InvokeCommand(LPCMINVOKECOMMANDINFO pCmdInfo)
 
 			for (int j = 0; j < g_ShellItems.size(); j++)
 			{
-				std::wstring args = FormatCommand(sargs, g_ShellItems, g_Items[i]->UseVariableQuotes, j);
+				std::wstring args = FormatCommand(sargs, g_ShellItems, g_Items[j]->UseVariableQuotes, j);
 
 				// DEBUG: Show user the command line being used.
 				//MessageBox(NULL, args.c_str(), L"OpenWithPP cmdLine", MB_OK);

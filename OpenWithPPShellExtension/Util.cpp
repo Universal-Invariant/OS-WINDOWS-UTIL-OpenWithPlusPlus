@@ -3,13 +3,7 @@
 #include "Util.h"
 
 
-REGISTRY_ENTRY GetRegEntry(
-	HKEY    hkeyRoot,
-	LPCWSTR pszKeyName,
-	LPCWSTR pszValueName,
-	LPCWSTR pszData,
-	DWORD   dwType,
-	DWORD   dwData)
+REGISTRY_ENTRY GetRegEntry(HKEY    hkeyRoot, LPCWSTR pszKeyName, LPCWSTR pszValueName, LPCWSTR pszData, DWORD   dwType, DWORD   dwData)
 {
 	REGISTRY_ENTRY r = {
 		hkeyRoot,

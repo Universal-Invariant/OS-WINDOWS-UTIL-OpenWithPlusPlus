@@ -24,6 +24,8 @@ The requirements are Windows 7 x64 or higher, [.NET Framework 4.8 x64](https://d
 
 Start the application and click on the Install button. Don't move the folder after installation.
 
+## Running from  command line
+Commands can be run from the command line. Additional arguments can be added to commands saved arguments.
 
 ## GUI Elements
 
@@ -99,6 +101,36 @@ and separated by a space.
 To get the filename without extension for a single file there is a %filename-no-ext% variable.
 
 Environment variables get expanded.
+
+### Special Tokens:
+
+Tokens are wrapped with the token indicator: %. The following tokens are replaced with the 
+appropriate file information and default values if file does not exist.
+
+The current file: When multiple files are passed it will be the currently executing file in the list
+	file - full file
+	path - path 
+	filename - filename
+	file-no-ext =  full file without extension
+	filename-no-ext = filename without extension
+	ext - extension	with no initial dot
+	.ext - extension with initial dot
+	exists - 1 if file exists, else 0
+	filesize - filesize or 0
+	created - Data created in Yr/Mnth/Day Hour:Min:Sec format or " / / "
+	accessed - Data accessed in Yr/Mnth/Day Hour:Min:Sec format or " / / "
+	written -  Data written in Yr/Mnth/Day Hour:Min:Sec format or " / / "
+	attributes - attributes or - 1
+
+Prefix with q to use quotes. Suffix with [] to include entire array of data separated by 
+;). E.g., filename[] will put all create a list of semi-colon separated filenames for the 
+passed files.
+
+### User defined Variables:
+Variables passed in with %$<VariableName=default value>$% will query the user for their values as they are
+needed. Prefix VariableName with * have it focused in the query. default value will be the default value used
+in the query.
+
 
 ### Working Directory
 
